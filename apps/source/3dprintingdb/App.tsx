@@ -8,11 +8,14 @@ import {
 } from 'react-native';
 import { Filament, INITIAL_FILAMENTS, METRICS } from './src/data/filaments';
 
+const designLogo = require('./assets/design-logo.png');
+
 const colors = {
   ink: '#263746', muted: '#70808c', canvas: '#eef2f3', surface: '#f9fbfb',
   line: '#d8e1e4', accent: '#607f91', accentDark: '#426172', white: '#fff',
 };
 type Screen = 'list' | 'detail' | 'compare';
+type Layout = 'table' | 'card';
 
 export default function App() {
   const [filaments, setFilaments] = useState(INITIAL_FILAMENTS);
@@ -25,6 +28,7 @@ export default function App() {
   const [showDry, setShowDry] = useState(true);
   const [showImages, setShowImages] = useState(true);
   const [workImage, setWorkImage] = useState('');
+  const [layout, setLayout] = useState<Layout>('table');
 
   useEffect(() => {
     AsyncStorage.getItem('3dprintingdb-filaments').then((saved) => {
@@ -37,6 +41,8 @@ export default function App() {
   };
   const toggle = (id: string) => setSelected((current) =>
     current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleFavorite = (id: string) => persist(filaments.map((item) =>
+    item.id === id ? { ...item, favorite: !item.favorite } : item));
   const openDetail = (item: Filament) => { setDetail(item); setWorkImage(''); setScreen('detail'); };
   const selectedFilaments = useMemo(() => filaments.filter((item) => selected.includes(item.id)), [filaments, selected]);
   const font = (size: number) => ({ fontSize: Math.round(size * fontScale) });
@@ -44,7 +50,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
-      {screen === 'list' && <ListScreen {...{ filaments, selected, toggle, openDetail, setScreen, settingsOpen, setSettingsOpen, showMaterial, showDry, showImages, font }} />}
+      {screen === 'list' && <ListScreen {...{ filaments, selected, toggle, toggleFavorite, openDetail, setScreen, setSettingsOpen, showMaterial, showDry, showImages, layout, font }} />}
       {screen === 'detail' && detail && <DetailScreen item={detail} workImage={workImage} setWorkImage={setWorkImage} onBack={() => setScreen('list')} onSave={(image: string) => {
         const next = filaments.map((item) => item.id === detail.id ? { ...item, notes: image ? `${item.notes}\n作品画像: ${image}` : item.notes } : item);
         persist(next); setDetail(next.find((item) => item.id === detail.id) || detail);
@@ -55,6 +61,10 @@ export default function App() {
         <View style={styles.modalBackdrop}><View style={styles.settings}>
           <Text style={[styles.modalTitle, font(20)]}>表示設定</Text>
           <Text style={styles.settingLabel}>一覧に表示する項目</Text>
+          <Text style={styles.settingLabel}>表示形式</Text>
+          <View style={styles.fontButtons}>
+            {([{ id: 'table', label: '一覧' }, { id: 'card', label: 'カード' }] as const).map((option) => <Pressable key={option.id} style={[styles.fontButton, layout === option.id && styles.fontButtonActive]} onPress={() => setLayout(option.id)}><Text style={styles.fontButtonText}>{option.label}</Text></Pressable>)}
+          </View>
           <SettingRow label="素材" value={showMaterial} onChange={setShowMaterial} />
           <SettingRow label="推奨乾燥条件" value={showDry} onChange={setShowDry} />
           <SettingRow label="製品画像" value={showImages} onChange={setShowImages} />
@@ -67,18 +77,24 @@ export default function App() {
   );
 }
 
-function ListScreen({ filaments, selected, toggle, openDetail, setScreen, setSettingsOpen, showMaterial, showDry, showImages, font }: any) {
+function ListScreen({ filaments, selected, toggle, toggleFavorite, openDetail, setScreen, setSettingsOpen, showMaterial, showDry, showImages, layout, font }: any) {
   return <View style={styles.container}>
-    <View style={styles.header}><View><Text style={styles.eyebrow}>FILAMENT LIBRARY</Text><Text style={[styles.title, font(28)]}>3DprintingDB</Text></View><View style={styles.headerActions}><Pressable onPress={() => setSettingsOpen(true)} accessibilityLabel="表示設定"><Text style={styles.headerIcon}>⚙</Text></Pressable><Pressable style={styles.compareButton} onPress={() => setScreen('compare')}><Text style={styles.compareText}>比較 {selected.length > 0 && `(${selected.length})`}</Text></Pressable></View></View>
-    <View style={styles.tableHeader}><Text style={styles.checkHeader}>✓</Text><Text style={[styles.tableHeading, { flex: 1.5 }]}>フィラメント</Text>{showMaterial && <Text style={styles.tableHeading}>素材</Text>}{showDry && <Text style={styles.tableHeading}>乾燥</Text>}</View>
+    <View style={styles.header}><View style={styles.branding}><Image source={designLogo} resizeMode="contain" style={styles.logo} accessibilityLabel="3DprintingDB" /><Text style={styles.eyebrow}>MY FILAMENT LIBRARY</Text></View><View style={styles.headerActions}><Pressable onPress={() => setSettingsOpen(true)} accessibilityLabel="表示設定"><Text style={styles.headerIcon}>⚙</Text></Pressable><Pressable style={styles.compareButton} onPress={() => setScreen('compare')}><Text style={styles.compareText}>比較 {selected.length > 0 && `(${selected.length})`}</Text></Pressable></View></View>
+    {layout === 'table' && <View style={styles.tableHeader}><Text style={styles.checkHeader}>✓</Text><Text style={[styles.tableHeading, { flex: 1.5 }]}>フィラメント</Text>{showMaterial && <Text style={styles.tableHeading}>素材</Text>}{showDry && <Text style={styles.tableHeading}>乾燥</Text>}</View>}
     <ScrollView contentContainerStyle={styles.list}>
       <Text style={[styles.sectionCaption, font(13)]}>{filaments.length}本の登録フィラメント</Text>
-      {filaments.map((item: Filament) => <Pressable key={item.id} style={styles.filamentRow} onPress={() => openDetail(item)}>
+      <View style={layout === 'card' && styles.cardGrid}>{filaments.map((item: Filament) => layout === 'table' ? <Pressable key={item.id} style={styles.filamentRow} onPress={() => openDetail(item)}>
         <Pressable style={[styles.checkbox, selected.includes(item.id) && styles.checkboxChecked]} onPress={() => toggle(item.id)}><Text style={styles.checkText}>{selected.includes(item.id) ? '✓' : ''}</Text></Pressable>
+        <Pressable onPress={() => toggleFavorite(item.id)} accessibilityLabel={`${item.name}をお気に入りにする`}><Text style={[styles.favorite, item.favorite && styles.favoriteActive]}>{item.favorite ? '★' : '☆'}</Text></Pressable>
         {showImages && <Image source={{ uri: item.productImage }} style={styles.thumb} />}
         <View style={{ flex: 1.5 }}><Text style={[styles.rowName, font(16)]}>{item.name}</Text><Text style={styles.rowBrand}>{item.brand} · {item.color}</Text></View>
         {showMaterial && <Text style={[styles.cell, font(14)]}>{item.material}</Text>}{showDry && <Text style={[styles.cell, font(12)]}>{item.dry}</Text>}<Text style={styles.chevron}>›</Text>
-      </Pressable>)}
+      </Pressable> : <Pressable key={item.id} style={styles.filamentCard} onPress={() => openDetail(item)}>
+        {showImages && <Image source={{ uri: item.productImage }} style={styles.cardImage} />}
+        <View style={styles.cardActions}><Pressable style={[styles.checkbox, selected.includes(item.id) && styles.checkboxChecked]} onPress={() => toggle(item.id)}><Text style={styles.checkText}>{selected.includes(item.id) ? '✓' : ''}</Text></Pressable><Pressable onPress={() => toggleFavorite(item.id)} accessibilityLabel={`${item.name}をお気に入りにする`}><Text style={[styles.favorite, item.favorite && styles.favoriteActive]}>{item.favorite ? '★' : '☆'}</Text></Pressable></View>
+        <Text style={[styles.rowName, font(16)]} numberOfLines={1}>{item.name}</Text><Text style={styles.rowBrand}>{item.brand} · {item.color}</Text>
+        <Text style={styles.cardMeta}>{showMaterial ? item.material : ''}{showMaterial && showDry ? '  /  ' : ''}{showDry ? item.dry : ''}</Text>
+      </Pressable>)}</View>
     </ScrollView>
   </View>;
 }
@@ -124,9 +140,9 @@ function SettingRow({ label, value, onChange }: { label: string; value: boolean;
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas }, container: { flex: 1, backgroundColor: colors.canvas },
-  header: { padding: 22, paddingTop: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.canvas },
-  eyebrow: { color: colors.muted, fontSize: 11, letterSpacing: 1.7, fontWeight: '700' }, title: { color: colors.ink, fontWeight: '700', marginTop: 4 }, headerActions: { alignItems: 'flex-end', gap: 12 }, headerIcon: { color: colors.accentDark, fontSize: 22 }, compareButton: { backgroundColor: colors.accentDark, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }, compareText: { color: colors.white, fontWeight: '700', fontSize: 12 },
-  tableHeader: { flexDirection: 'row', alignItems: 'center', padding: 10, paddingHorizontal: 18, backgroundColor: colors.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line }, tableHeading: { color: colors.muted, fontSize: 11, fontWeight: '700', width: 70 }, checkHeader: { width: 30, color: colors.muted }, list: { paddingBottom: 28 }, sectionCaption: { color: colors.muted, padding: 18, paddingBottom: 8 }, filamentRow: { minHeight: 78, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderBottomWidth: 1, borderColor: colors.line, gap: 10 }, checkbox: { width: 21, height: 21, borderRadius: 6, borderWidth: 1.5, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' }, checkboxChecked: { backgroundColor: colors.accent }, checkText: { color: colors.white, fontWeight: '700' }, thumb: { width: 42, height: 42, borderRadius: 8, backgroundColor: colors.line }, rowName: { color: colors.ink, fontWeight: '700' }, rowBrand: { color: colors.muted, fontSize: 11, marginTop: 4 }, cell: { color: colors.ink, width: 70 }, chevron: { color: colors.muted, fontSize: 23 },
+  header: { padding: 18, paddingTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.accentDark }, branding: { gap: 5 }, logo: { width: 154, height: 28 },
+  eyebrow: { color: colors.muted, fontSize: 11, letterSpacing: 1.7, fontWeight: '700' }, title: { color: colors.ink, fontWeight: '700', marginTop: 4 }, headerActions: { alignItems: 'flex-end', gap: 8 }, headerIcon: { color: colors.white, fontSize: 22 }, compareButton: { backgroundColor: '#ffffff24', borderWidth: 1, borderColor: '#ffffff59', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 }, compareText: { color: colors.white, fontWeight: '700', fontSize: 12 },
+  tableHeader: { flexDirection: 'row', alignItems: 'center', padding: 10, paddingHorizontal: 18, backgroundColor: colors.surface, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line }, tableHeading: { color: colors.muted, fontSize: 11, fontWeight: '700', width: 70 }, checkHeader: { width: 30, color: colors.muted }, list: { paddingBottom: 28 }, sectionCaption: { color: colors.muted, padding: 18, paddingBottom: 8 }, filamentRow: { minHeight: 78, paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderBottomWidth: 1, borderColor: colors.line, gap: 10 }, checkbox: { width: 21, height: 21, borderRadius: 6, borderWidth: 1.5, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' }, checkboxChecked: { backgroundColor: colors.accent }, checkText: { color: colors.white, fontWeight: '700' }, favorite: { color: colors.muted, fontSize: 22, lineHeight: 24 }, favoriteActive: { color: '#c79342' }, thumb: { width: 42, height: 42, borderRadius: 8, backgroundColor: colors.line }, rowName: { color: colors.ink, fontWeight: '700' }, rowBrand: { color: colors.muted, fontSize: 11, marginTop: 4 }, cell: { color: colors.ink, width: 70 }, chevron: { color: colors.muted, fontSize: 23 }, cardGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14, gap: 12 }, filamentCard: { width: '47%', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 14, padding: 10, gap: 4, overflow: 'hidden' }, cardImage: { width: '100%', height: 94, borderRadius: 9, backgroundColor: colors.line, marginBottom: 4 }, cardActions: { position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, cardMeta: { color: colors.accentDark, fontSize: 11, fontWeight: '600', marginTop: 5 },
   detailContent: { padding: 22, paddingBottom: 50 }, back: { color: colors.accentDark, fontWeight: '700', marginBottom: 18 }, heroImage: { width: '100%', height: 190, borderRadius: 14, backgroundColor: colors.line, marginBottom: 20 }, detailTitle: { color: colors.ink, fontWeight: '700', marginTop: 5 }, detailNotes: { color: colors.muted, lineHeight: 21, marginTop: 8 }, cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 22 }, info: { width: '48%', backgroundColor: colors.surface, borderRadius: 10, padding: 13 }, infoLabel: { color: colors.muted, fontSize: 11 }, infoValue: { color: colors.ink, fontSize: 15, fontWeight: '700', marginTop: 5 }, subheading: { color: colors.ink, fontSize: 18, fontWeight: '700', marginTop: 12 }, helper: { color: colors.muted, fontSize: 12, marginTop: 6, marginBottom: 12 }, inputRow: { marginTop: 13 }, inputLabel: { color: colors.ink, fontSize: 13, fontWeight: '600' }, recommended: { color: colors.accentDark, fontSize: 11, fontWeight: '400' }, input: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 8, marginTop: 6, padding: 10, color: colors.ink }, urlInput: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 8, padding: 12, color: colors.ink, marginTop: 6 }, workImage: { height: 160, borderRadius: 10, marginTop: 12 }, primaryButton: { backgroundColor: colors.accentDark, borderRadius: 9, padding: 14, alignItems: 'center', marginTop: 22 }, primaryText: { color: colors.white, fontWeight: '700' },
   radar: { height: 320, alignItems: 'center', justifyContent: 'center', marginTop: 16 }, radarGrid: { width: 300, height: 300, alignItems: 'center', justifyContent: 'center' }, radarRing: { position: 'absolute', borderColor: colors.line, borderWidth: 1 }, radarShape: { position: 'absolute', width: 5, height: 210, backgroundColor: `${colors.accent}22`, top: 45 }, radarEmpty: { color: colors.muted, fontSize: 12 }, legend: { backgroundColor: colors.surface, borderRadius: 10, padding: 13 }, legendItem: { flexDirection: 'row', alignItems: 'center', marginVertical: 3 }, legendDot: { width: 9, height: 9, borderRadius: 5, marginRight: 8 }, legendText: { color: colors.ink, fontSize: 12 }, metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }, metric: { color: colors.accentDark, backgroundColor: '#dfe9ec', padding: 7, borderRadius: 6, fontSize: 12 },
   modalBackdrop: { flex: 1, backgroundColor: '#26374666', justifyContent: 'flex-end' }, settings: { backgroundColor: colors.surface, padding: 24, borderTopLeftRadius: 20, borderTopRightRadius: 20 }, modalTitle: { color: colors.ink, fontWeight: '700', marginBottom: 20 }, settingLabel: { color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 12, marginBottom: 6 }, settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 }, settingText: { color: colors.ink, fontSize: 15 }, fontButtons: { flexDirection: 'row', gap: 8 }, fontButton: { borderColor: colors.line, borderWidth: 1, padding: 10, borderRadius: 7, flex: 1, alignItems: 'center' }, fontButtonActive: { backgroundColor: '#dfe9ec', borderColor: colors.accent }, fontButtonText: { color: colors.ink, fontWeight: '600' },

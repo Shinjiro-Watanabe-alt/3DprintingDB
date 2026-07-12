@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "3dprintingdb",
+    "name": "3DprintingDB",
     "slug": "3dprintingdb",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,6 +17,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
+    },
+    "experiments": {
+      "baseUrl": "/3DprintingDB"
     },
     "web": {
       "favicon": "./assets/favicon.png"
