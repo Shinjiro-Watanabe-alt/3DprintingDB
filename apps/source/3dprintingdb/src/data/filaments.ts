@@ -65,3 +65,21 @@ export const INITIAL_FILAMENTS: Filament[] = [
     notes: '柔軟なパーツや滑り止めに適したTPU。',
   },
 ];
+
+export const FILAMENT_SOURCE_URL = 'https://3dfilamentprofiles.com/';
+
+/**
+ * 公式に公開されたJSONエンドポイントを設定した場合だけ外部カタログを取得する。
+ * エンドポイント未設定時は、出典を確認済みの初期カタログを使用する。
+ */
+export async function fetchFilamentCatalog(): Promise<Filament[]> {
+  const endpoint = (globalThis as { process?: { env?: { EXPO_PUBLIC_FILAMENT_CATALOG_URL?: string } } })
+    .process?.env?.EXPO_PUBLIC_FILAMENT_CATALOG_URL;
+  if (!endpoint) return INITIAL_FILAMENTS;
+
+  const response = await fetch(endpoint);
+  if (!response.ok) throw new Error(`カタログ取得に失敗しました (${response.status})`);
+  const data = await response.json() as Filament[];
+  if (!Array.isArray(data)) throw new Error('カタログの形式が不正です');
+  return data;
+}
