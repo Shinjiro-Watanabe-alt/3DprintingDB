@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "3DprintingDB",
+    "slug": "3dprintingdb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "experiments": {
+      "baseUrl": "/3DprintingDB"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
