@@ -1,0 +1,50 @@
+name: GitHub Pagesへ公開
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ソースを取得
+        uses: actions/checkout@v4.2.2
+      - name: Node.jsを設定
+        uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/source/3dprintingdb/package-lock.json
+      - name: 依存関係をインストール
+        working-directory: apps/source/3dprintingdb
+        run: npm ci
+      - name: Webサイトをビルド
+        working-directory: apps/source/3dprintingdb
+        run: npm run build:web
+      - name: Pagesを設定
+        uses: actions/configure-pages@v5.0.0
+      - name: 公開成果物をアップロード
+        uses: actions/upload-pages-artifact@v3.0.1
+        with:
+          path: apps/source/3dprintingdb/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pagesへデプロイ
+        id: deployment
+        uses: actions/deploy-pages@v4.0.5
