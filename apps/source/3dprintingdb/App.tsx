@@ -45,7 +45,7 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
       {screen === 'list' && <ListScreen {...{ filaments, selected, toggle, openDetail, setScreen, settingsOpen, setSettingsOpen, showMaterial, showDry, showImages, font }} />}
-      {screen === 'detail' && detail && <DetailScreen item={detail} workImage={workImage} setWorkImage={setWorkImage} onBack={() => setScreen('list')} onSave={(image) => {
+      {screen === 'detail' && detail && <DetailScreen item={detail} workImage={workImage} setWorkImage={setWorkImage} onBack={() => setScreen('list')} onSave={(image: string) => {
         const next = filaments.map((item) => item.id === detail.id ? { ...item, notes: image ? `${item.notes}\n作品画像: ${image}` : item.notes } : item);
         persist(next); setDetail(next.find((item) => item.id === detail.id) || detail);
         Alert.alert('保存しました', '作品画像の参照先をフィラメントに保存しました。');
