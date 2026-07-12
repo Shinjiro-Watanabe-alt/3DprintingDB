@@ -137,6 +137,7 @@ function DetailScreen({ item, onBack, workImage, setWorkImage, onSave, onDelete,
     <Pressable onPress={onBack}><Text style={styles.back}>‹  一覧に戻る</Text></Pressable>
     {item.productImage ? <Image source={{ uri: item.productImage }} style={styles.heroImage} /> : null}
     <Text style={styles.eyebrow}>{item.brand.toUpperCase()} / {item.material}</Text><Text style={[styles.detailTitle, font(27)]}>{item.name}</Text><Text style={styles.detailNotes}>{item.notes}</Text>
+    <Text style={styles.helper}>出典: {item.sourceUrl || FILAMENT_SOURCE_URL}{item.fetchedAt ? `（取得: ${item.fetchedAt}）` : ''}</Text>
     <View style={styles.cards}><Info label="ノズル温度" value={item.nozzle} /><Info label="ベッド温度" value={item.bed} /><Info label="乾燥推奨" value={item.dry} /><Info label="線径" value={`${item.diameter} mm`} /></View>
     <Text style={styles.subheading}>印刷設定</Text><Text style={styles.helper}>推奨値をデフォルト表示。必要に応じて変更できます。</Text>
     <View style={styles.inputRow}><Text style={styles.inputLabel}>ノズル温度 <Text style={styles.recommended}>推奨 {item.nozzle}</Text></Text><TextInput style={styles.input} defaultValue={item.nozzle.replace(' °C', '')} keyboardType="numeric" /></View>
@@ -173,7 +174,7 @@ function RegistrationModal({ visible, catalog, onClose, onRegister }: { visible:
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
     <View style={styles.modalBackdrop}><View style={styles.registration}>
       <Text style={styles.modalTitle}>フィラメントを登録</Text>
-      <Text style={styles.helper}>出典: {FILAMENT_SOURCE_URL}</Text>
+      <Text style={styles.helper}>出典: {catalog[0]?.sourceUrl || FILAMENT_SOURCE_URL}</Text>
       <Text style={styles.settingLabel}>メーカー</Text><OptionList options={brands} value={brand} onChange={(value) => choose(setBrand, value, [setMaterial, setName, setColor])} />
       <Text style={styles.settingLabel}>素材</Text><OptionList options={materials} value={material} onChange={(value) => choose(setMaterial, value, [setName, setColor])} />
       <Text style={styles.settingLabel}>製品</Text><OptionList options={products} value={name} onChange={(value) => choose(setName, value, [setColor])} />

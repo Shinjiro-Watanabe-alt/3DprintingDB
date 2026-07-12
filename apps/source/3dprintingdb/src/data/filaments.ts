@@ -111,13 +111,15 @@ function normalizeSpoolmanCatalog(payload: unknown, fetchedAt: string): Filament
     if (!value || typeof value !== 'object') return [];
     const record = value as SpoolmanFilament;
     if (!record.name || !record.material) return [];
+    const name = record.name;
+    const material = record.material;
     const colors = record.colors?.length ? record.colors : [record.color];
     const diameter = record.diameter ?? record.diameters?.[0] ?? 1.75;
     return colors.map((color, colorIndex) => ({
       id: `spoolmandb-${index}-${colorIndex}`,
       brand: record.manufacturer || 'メーカー未設定',
-      name: record.name.replace('{color_name}', colorName(color)),
-      material: record.material,
+      name: name.replace('{color_name}', colorName(color)),
+      material,
       color: colorName(color),
       diameter,
       nozzle: temperature(record.extruder_temp, record.extruder_temp_range),
