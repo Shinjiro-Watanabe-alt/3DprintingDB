@@ -11,6 +11,7 @@ export type Filament = {
   productImage: string;
   metrics: number[];
   notes: string;
+  favorite?: boolean;
 };
 
 export const METRICS = [
