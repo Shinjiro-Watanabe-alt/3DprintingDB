@@ -119,11 +119,11 @@ function ListScreen({ filaments, selected, toggle, toggleFavorite, openDetail, s
       <View style={layout === 'card' && styles.cardGrid}>{sorted.map((item: Filament) => layout === 'table' ? <Pressable key={item.id} style={styles.filamentRow} onPress={() => openDetail(item)}>
         <Pressable style={[styles.checkbox, selected.includes(item.id) && styles.checkboxChecked]} onPress={() => toggle(item.id)}><Text style={styles.checkText}>{selected.includes(item.id) ? '✓' : ''}</Text></Pressable>
         <Pressable onPress={() => toggleFavorite(item.id)} accessibilityLabel={`${item.name}をお気に入りにする`}><Text style={[styles.favorite, item.favorite && styles.favoriteActive]}>{item.favorite ? '★' : '☆'}</Text></Pressable>
-        {showImages && <Image source={{ uri: item.productImage }} style={styles.thumb} />}
+        {showImages && item.productImage ? <Image source={{ uri: item.productImage }} style={styles.thumb} /> : null}
         <View style={{ flex: 1.5 }}><Text style={[styles.rowName, font(16)]}>{item.name}</Text><Text style={styles.rowBrand}>{item.brand} · {item.color}</Text></View>
         {showMaterial && <Text style={[styles.cell, font(14)]}>{item.material}</Text>}{showDry && <Text style={[styles.cell, font(12)]}>{item.dry}</Text>}<Text style={styles.chevron}>›</Text>
       </Pressable> : <Pressable key={item.id} style={styles.filamentCard} onPress={() => openDetail(item)}>
-        {showImages && <Image source={{ uri: item.productImage }} style={styles.cardImage} />}
+        {showImages && item.productImage ? <Image source={{ uri: item.productImage }} style={styles.cardImage} /> : null}
         <View style={styles.cardActions}><Pressable style={[styles.checkbox, selected.includes(item.id) && styles.checkboxChecked]} onPress={() => toggle(item.id)}><Text style={styles.checkText}>{selected.includes(item.id) ? '✓' : ''}</Text></Pressable><Pressable onPress={() => toggleFavorite(item.id)} accessibilityLabel={`${item.name}をお気に入りにする`}><Text style={[styles.favorite, item.favorite && styles.favoriteActive]}>{item.favorite ? '★' : '☆'}</Text></Pressable></View>
         <Text style={[styles.rowName, font(16)]} numberOfLines={1}>{item.name}</Text><Text style={styles.rowBrand}>{item.brand} · {item.color}</Text>
         <Text style={styles.cardMeta}>{showMaterial ? item.material : ''}{showMaterial && showDry ? '  /  ' : ''}{showDry ? item.dry : ''}</Text>
@@ -135,7 +135,7 @@ function ListScreen({ filaments, selected, toggle, toggleFavorite, openDetail, s
 function DetailScreen({ item, onBack, workImage, setWorkImage, onSave, onDelete, font }: any) {
   return <ScrollView style={styles.container} contentContainerStyle={styles.detailContent}>
     <Pressable onPress={onBack}><Text style={styles.back}>‹  一覧に戻る</Text></Pressable>
-    <Image source={{ uri: item.productImage }} style={styles.heroImage} />
+    {item.productImage ? <Image source={{ uri: item.productImage }} style={styles.heroImage} /> : null}
     <Text style={styles.eyebrow}>{item.brand.toUpperCase()} / {item.material}</Text><Text style={[styles.detailTitle, font(27)]}>{item.name}</Text><Text style={styles.detailNotes}>{item.notes}</Text>
     <View style={styles.cards}><Info label="ノズル温度" value={item.nozzle} /><Info label="ベッド温度" value={item.bed} /><Info label="乾燥推奨" value={item.dry} /><Info label="線径" value={`${item.diameter} mm`} /></View>
     <Text style={styles.subheading}>印刷設定</Text><Text style={styles.helper}>推奨値をデフォルト表示。必要に応じて変更できます。</Text>

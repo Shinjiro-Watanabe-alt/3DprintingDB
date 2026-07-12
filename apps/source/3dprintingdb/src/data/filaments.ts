@@ -11,6 +11,8 @@ export type Filament = {
   productImage: string;
   metrics: number[];
   notes: string;
+  sourceUrl?: string;
+  fetchedAt?: string;
   favorite?: boolean;
 };
 
@@ -67,19 +69,80 @@ export const INITIAL_FILAMENTS: Filament[] = [
 ];
 
 export const FILAMENT_SOURCE_URL = 'https://3dfilamentprofiles.com/';
+export const SPOOLMANDB_SOURCE_URL = 'https://donkie.github.io/SpoolmanDB/filaments.json';
+
+type SpoolmanColor = { name?: string; hex?: string; hexes?: string[] } | string;
+type SpoolmanFilament = {
+  manufacturer?: string;
+  name?: string;
+  material?: string;
+  diameter?: number;
+  diameters?: number[];
+  color?: SpoolmanColor;
+  colors?: SpoolmanColor[];
+  extruder_temp?: number;
+  extruder_temp_range?: number[];
+  bed_temp?: number;
+  bed_temp_range?: number[];
+  density?: number;
+  finish?: string;
+  pattern?: string;
+};
+
+function temperature(value?: number, range?: number[]): string {
+  if (typeof value === 'number') return `${value} °C`;
+  if (range?.length === 2) return `${range[0]}–${range[1]} °C`;
+  return '未設定';
+}
+
+function colorName(color: SpoolmanColor | undefined): string {
+  if (typeof color === 'string') return color;
+  return color?.name || (color?.hex ? `#${color.hex}` : '未設定');
+}
+
+function normalizeSpoolmanCatalog(payload: unknown, fetchedAt: string): Filament[] {
+  const records = Array.isArray(payload)
+    ? payload
+    : (payload && typeof payload === 'object' && Array.isArray((payload as { filaments?: unknown }).filaments)
+      ? (payload as { filaments: unknown[] }).filaments
+      : []);
+
+  return records.flatMap((value, index) => {
+    if (!value || typeof value !== 'object') return [];
+    const record = value as SpoolmanFilament;
+    if (!record.name || !record.material) return [];
+    const colors = record.colors?.length ? record.colors : [record.color];
+    const diameter = record.diameter ?? record.diameters?.[0] ?? 1.75;
+    return colors.map((color, colorIndex) => ({
+      id: `spoolmandb-${index}-${colorIndex}`,
+      brand: record.manufacturer || 'メーカー未設定',
+      name: record.name.replace('{color_name}', colorName(color)),
+      material: record.material,
+      color: colorName(color),
+      diameter,
+      nozzle: temperature(record.extruder_temp, record.extruder_temp_range),
+      bed: temperature(record.bed_temp, record.bed_temp_range),
+      dry: '未設定',
+      productImage: '',
+      metrics: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+      notes: [
+        record.density ? `密度: ${record.density} g/cm³` : '',
+        record.finish ? `仕上げ: ${record.finish}` : '',
+        record.pattern ? `パターン: ${record.pattern}` : '',
+      ].filter(Boolean).join(' / ') || 'SpoolmanDBから取得したフィラメント。',
+      sourceUrl: SPOOLMANDB_SOURCE_URL,
+      fetchedAt,
+    }));
+  });
+}
 
 /**
- * 公式に公開されたJSONエンドポイントを設定した場合だけ外部カタログを取得する。
- * エンドポイント未設定時は、出典を確認済みの初期カタログを使用する。
+ * SpoolmanDBの公開JSONを取得する。失敗時は呼び出し側で初期カタログを使用する。
  */
 export async function fetchFilamentCatalog(): Promise<Filament[]> {
-  const endpoint = (globalThis as { process?: { env?: { EXPO_PUBLIC_FILAMENT_CATALOG_URL?: string } } })
-    .process?.env?.EXPO_PUBLIC_FILAMENT_CATALOG_URL;
-  if (!endpoint) return INITIAL_FILAMENTS;
-
-  const response = await fetch(endpoint);
+  const response = await fetch(SPOOLMANDB_SOURCE_URL);
   if (!response.ok) throw new Error(`カタログ取得に失敗しました (${response.status})`);
-  const data = await response.json() as Filament[];
-  if (!Array.isArray(data)) throw new Error('カタログの形式が不正です');
+  const data = normalizeSpoolmanCatalog(await response.json(), new Date().toISOString());
+  if (!data.length) throw new Error('SpoolmanDBのカタログが空、または形式が不正です');
   return data;
 }
